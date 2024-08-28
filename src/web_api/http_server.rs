@@ -55,7 +55,12 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HashMap<String, Strin
             Err(_e) => continue,
         };
 
+        if line.is_empty() {
+            break;
+        }
+
         let parameters = split_string_into_pairs(&line);
+        
         http_request.insert(parameters.0, parameters.1);
     }
     
@@ -65,9 +70,7 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HashMap<String, Strin
 fn split_string_into_pairs(s: &String) -> (String, String) {
     let n: usize = s.len();
 
-    if n == 0 { 
-        return (String::new(), String::new()); 
-    }
+    if n == 0 { return (String::new(), String::new()); }
 
     let sep_pos = match s.find(':') {
         Some(v) => v,
