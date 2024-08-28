@@ -46,12 +46,18 @@ impl HttpServer {
 
 fn handle_connection(mut stream: &mut TcpStream) -> Result<HashMap<String, String>,  Box<dyn error::Error + 'static>> {
     let buf_reader = BufReader::new(&mut stream);
-    let http_request: HashMap<String, String> = buf_reader
-        .lines()
-        .map(|result| match result { Ok(v) => v, Err(_e) => String::new()})
-        .take_while(|line| !line.is_empty())
-        .map(|line| split_string_into_pairs(&line))
-        .collect::<HashMap<String, String>>();
+    let mut http_request:HashMap<String, String> = HashMap::new();
+
+
+    for result in buf_reader.lines() {
+        let line:String = match result {
+            Ok(v) => v,
+            Err(_e) => continue,
+        };
+
+        let parameters = split_string_into_pairs(&line);
+        http_request.insert(parameters.0, parameters.1);
+    }
     
     Ok(http_request)
 }
@@ -59,7 +65,9 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HashMap<String, Strin
 fn split_string_into_pairs(s: &String) -> (String, String) {
     let n: usize = s.len();
 
-    if n == 0 { return (String::new(), String::new()); }
+    if n == 0 { 
+        return (String::new(), String::new()); 
+    }
 
     let sep_pos = match s.find(':') {
         Some(v) => v,
