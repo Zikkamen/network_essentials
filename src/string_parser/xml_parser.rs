@@ -1,11 +1,14 @@
 use std::error;
 use std::collections::HashMap;
 
-fn parse(raw_data: &Vec<char>) -> Result<HashMap<String, String>, Box<dyn error::Error + 'static>> {
+use crate::string_parser::model_classes::ParsedString;
+
+pub fn parse(s: &String) -> Result<ParsedString, Box<dyn error::Error + 'static>> {
+    let raw_data: Vec<char> = s.chars().collect();
     let n: usize = raw_data.len();
 
     let mut tmp: String = String::new();
-    let mut credentials_map: HashMap<String, String> = HashMap::new();
+    let mut ps_stack = vec![ParsedString::new()];
 
     let mut entry_desc_stack: Vec<String> = Vec::new();
     let mut entry_stack: Vec<String> = Vec::new();
@@ -22,7 +25,9 @@ fn parse(raw_data: &Vec<char>) -> Result<HashMap<String, String>, Box<dyn error:
 
     while i < n {
         if raw_data[i] == '<' {
-            if i == n-1 { panic!("There is an open < at the last position"); }
+            if i == n-1 { 
+                panic!("There is an open < at the last position"); 
+            }
 
             if entry_desc_stack.len() > 0 {
                 entry_stack.push(tmp.to_owned());
@@ -34,7 +39,9 @@ fn parse(raw_data: &Vec<char>) -> Result<HashMap<String, String>, Box<dyn error:
                 parse_status = 1;
                 i += 1;
             } else {
-                if entry_desc_stack.len() == 0 { panic!("Found closing line without the corresponding object at line: {}", current_line); }
+                if entry_desc_stack.len() == 0 { 
+                    panic!("Found closing line without the corresponding object at line: {}", current_line);
+                }
 
                 parse_status = 2;
                 i += 2;
@@ -46,25 +53,28 @@ fn parse(raw_data: &Vec<char>) -> Result<HashMap<String, String>, Box<dyn error:
         if raw_data[i] == '>' {
             match parse_status {
                 1 => {
+                    ps_stack.push(ParsedString::new());
                     entry_desc_stack.push(tmp.to_owned());
                 },
                 2 => {
                     match entry_desc_stack.pop() {
                         Some(v) => {
-                            if tmp != v { panic!("Closing line doesn't corespond to open line: {} {} at line: {}", v, tmp, current_line); }
-                            
-                            let mut full_path:String = String::new();
-
-                            for path in entry_desc_stack.iter() {
-                                full_path.push_str(path);
-                                full_path.push('.');
+                            if tmp != v { 
+                                panic!("Closing line doesn't corespond to open line: {} {} at line: {}", v, tmp, current_line); 
                             }
 
-                            full_path.push_str(&v);
-
                             match entry_stack.pop() {
-                                Some(p) => credentials_map.insert(full_path, p),
+                                Some(p) => {
+                                    if p.len() > 0 {
+                                        ps_stack.last_mut().unwrap().set_string(p);
+                                    }
+                                },
                                 None => panic!("Couldn't find an entry for open line {}", v),
+                            }
+
+                            match ps_stack.pop() {
+                                Some(p) => ps_stack.last_mut().unwrap().add_to_hashmap(v, p),
+                                None => panic!("Error: Credentials Stack is empty"),
                             }
                         
                         },
@@ -81,7 +91,9 @@ fn parse(raw_data: &Vec<char>) -> Result<HashMap<String, String>, Box<dyn error:
             continue;
         }
 
-        if raw_data[i] == '\n' { current_line += 1; }
+        if raw_data[i] == '\n' { 
+            current_line += 1; 
+        }
 
         if raw_data[i] != '\n' && raw_data[i] != '\r' && raw_data[i] != ' ' {
             tmp.push(raw_data[i]);
@@ -90,5 +102,5 @@ fn parse(raw_data: &Vec<char>) -> Result<HashMap<String, String>, Box<dyn error:
         i += 1;
     }
 
-    Ok(credentials_map)
+    Ok(ps_stack.last().unwrap().clone())
 }
