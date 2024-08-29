@@ -5,7 +5,53 @@ use std::{
     net::{TcpStream},
 };
 
-type FnType = fn(HashMap<std::string::String, std::string::String>, TcpStream);
+type FnType = fn(HttpConnectionDetails, TcpStream);
+
+#[derive(Debug)]
+pub struct HttpConnectionDetails {
+    method: String,
+    path: String,
+    headers: HashMap<String, String>,
+    data: String,
+}
+
+impl HttpConnectionDetails {
+    pub fn new() -> Self {
+        HttpConnectionDetails{
+            method: String::new(),
+            path: String::new(),
+            headers: HashMap::new(),
+            data: String::new(),
+        }
+    }
+
+    pub fn set_method(&mut self, method: String) {
+        match &method[..] {
+            "GET" | "PUT" | "POST" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD" => self.method = method,
+            _ => panic!("Can't recgonize Http Method {method}"),
+        };
+    }
+
+    pub fn set_path(&mut self, path: String) {
+        self.path = path;
+    }
+
+    pub fn set_header(&mut self, key: String, value: String) {
+        self.headers.insert(key, value);
+    }
+
+    pub fn set_data(&mut self, data: String) {
+        self.data = data;
+    }
+
+    pub fn get_method(&self) -> String {
+        self.method.clone()
+    }
+
+    pub fn get_path(&self) -> String {
+        self.path.clone()
+    }
+}
 
 pub struct ApiRegister {
     default_func: FnType,
@@ -18,19 +64,11 @@ impl ApiRegister {
         ApiRegister{ default_func: default_func, path_map:HashMap::new(), prefix_map:HashMap::new() }
     }
 
-    pub fn handle_http_request(&self, http_request: HashMap<String, String>, stream: TcpStream) {
-        match get_method_and_path(&http_request) {
-            Some((method, path)) => self.handle_request_with_meta_data(method, path, http_request, stream),
-            None => (),
-        };
-    }
-
-    pub fn handle_request_with_meta_data(&self,
-            method: String,
-            path: String,
-            http_request: HashMap<String, String>, 
-            stream: TcpStream) {
-        let extract_prefix:Vec<&str> = path.split('/').collect();
+    pub fn handle_http_request(&self, mut http_request: HttpConnectionDetails, stream: TcpStream) {
+        let method = http_request.get_method();
+        let path = http_request.get_path();
+        
+        let extract_prefix:Vec<&str> = path.split('/').collect(); // TODO: Optimize Prefix Mapping with a Trie
 
         if extract_prefix.len() > 1 {
             match self.prefix_map.get(extract_prefix[1]) {
@@ -42,7 +80,11 @@ impl ApiRegister {
                         remaining_path.push_str(extract_prefix[i]);
                     }
 
-                    if remaining_path.len() == 0 { remaining_path = "/".to_string(); }
+                    if remaining_path.len() == 0 { 
+                        remaining_path = "/".to_string(); 
+                    }
+
+                    http_request.set_path(remaining_path);
 
                     v.handle_http_request(http_request, stream);
 
@@ -67,17 +109,4 @@ impl ApiRegister {
     pub fn register_prefix(&mut self, prefix: &str, api_register: ApiRegister) {
         self.prefix_map.insert(prefix.to_string(), api_register);
     }
-}
-
-pub fn get_method_and_path(http_request: &HashMap<String, String>) -> Option<(String, String)> {
-    let header = match http_request.get("HEAD_REQUEST:") {
-        Some(v) => v,
-        None => return None,
-    };
-
-    let split_header:Vec<&str> = header.split(' ').collect();
-
-    if split_header.len() < 2 { return None; }
-
-    Some((split_header[0].to_string(), split_header[1].to_string()))
 }
