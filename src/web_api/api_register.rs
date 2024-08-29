@@ -50,6 +50,14 @@ impl HttpConnectionDetails {
     pub fn get_path(&self) -> String {
         self.path.clone()
     }
+
+    pub fn get_data(&self) -> String {
+        self.data.clone()
+    }
+
+    pub fn get_header(&self, key: &str) -> Option<String> {
+        self.headers.get(key).cloned()
+    }
 }
 
 pub struct ApiRegister {
