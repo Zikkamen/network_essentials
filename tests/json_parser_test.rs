@@ -16,12 +16,11 @@ mod tests {
     #[test]
     fn parse_json_2() {
         let parsed_string = json_parser::parse(&test_json_2());
-        let parsed_hashmap = parsed_string.get_hashmap();
 
-        let value_1 = parsed_hashmap.get("key_1").expect("Key 1 in map");
+        let value_1 = parsed_string.get_from_map("key_1");
         assert_eq!(value_1.get_string(), "1");
 
-        let value_2 = parsed_hashmap.get("key_2").expect("Key 2 in map");
+        let value_2 = parsed_string.get_from_map("key_2");
         let value_2_list = value_2.get_list();
 
         assert_eq!(value_2_list.len(), 3);
@@ -29,10 +28,8 @@ mod tests {
         assert_eq!(value_2_list[1].get_string(), "2");
         assert_eq!(value_2_list[2].get_string(), "3");
 
-        let value_3 = parsed_hashmap.get("key_3").expect("Key 3 in map");
-        let value_3_map = value_3.get_hashmap();
-
-        let value_4 = value_3_map.get("key_4").expect("Key 4 in map");
+        let value_3 = parsed_string.get_from_map("key_3");
+        let value_4 = value_3.get_from_map("key_4");
 
         assert_eq!(value_4.get_string(), "4");
     }

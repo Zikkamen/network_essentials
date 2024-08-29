@@ -43,17 +43,24 @@ impl ParsedString {
         }
     }
 
-    pub fn get_hashmap(&self) -> &HashMap<String, ParsedString> {
+    pub fn get_map(&self) -> &HashMap<String, ParsedString> {
         match &self.ps_hashmap {
             Some(v) => &v,
-            None => panic!("Tried to get String when empty"),
+            None => panic!("Tried to get Hashmap when empty"),
         }
     }
 
     pub fn get_list(&self) -> &Vec<ParsedString> {
         match &self.ps_list {
             Some(v) => &v,
-            None => panic!("Tried to get String when empty"),
+            None => panic!("Tried to get List when empty"),
         }
-    } 
+    }
+
+    pub fn get_from_map(&self, key: &str) -> &ParsedString {
+        match &self.get_map().get(key) {
+            Some(v) => &v,
+            None => panic!("Couldn't find key {} in map", key),
+        }
+    }
 }

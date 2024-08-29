@@ -6,10 +6,7 @@ mod tests {
     fn parse_xml_1() {
         let parsed_string = xml_parser::parse(&test_xml_1()).expect("Valid Xml");
 
-        let content_1 = parsed_string.get_hashmap()
-            .get("group_1")
-            .expect("Group 1 in ParsedString")
-            .get_string();
+        let content_1 = parsed_string.get_from_map("group_1").get_string();
 
         assert_eq!(content_1, "value_1");
     }
@@ -18,19 +15,13 @@ mod tests {
     fn parse_xml_2() {
         let parsed_string = xml_parser::parse(&test_xml_2()).expect("Valid Xml");
 
-        let content_1 = parsed_string.get_hashmap()
-            .get("group_1")
-            .expect("Group 1 in ParsedString")
-            .get_string();
+        let content_1 =  parsed_string.get_from_map("group_1").get_string();
 
         assert_eq!(content_1, "value_1");
 
-        let content_2 = parsed_string.get_hashmap()
-            .get("group_2")
-            .expect("Group 2 in ParsedString")
-            .get_hashmap()
-            .get("group_2.1")
-            .expect("Group 2.1 in ParsedString")
+        let content_2 = parsed_string
+            .get_from_map("group_2")
+            .get_from_map("group_2.1")
             .get_string();
 
         assert_eq!(content_2, "value_2");
