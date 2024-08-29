@@ -1,5 +1,4 @@
 use std::error;
-use std::collections::HashMap;
 
 use crate::string_parser::model_classes::ParsedString;
 

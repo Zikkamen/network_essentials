@@ -1,6 +1,5 @@
 use std::io::Write;
 use std::net::TcpStream;
-use std::collections::HashMap;
 
 use network_essentials::web_api::api_register::ApiRegister;
 use network_essentials::web_api::api_register::HttpConnectionDetails;

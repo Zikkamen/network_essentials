@@ -1,5 +1,4 @@
 use std::{
-    collections::{HashMap},
     io::{prelude::*, BufReader},
     net::{TcpListener, TcpStream},
     thread,
@@ -34,7 +33,7 @@ impl HttpServer {
             thread::spawn(move || {
                 match stream {
                     Ok(mut stream) => {
-                        stream.set_read_timeout(Some(max_read_time));
+                        let _ = stream.set_read_timeout(Some(max_read_time));
 
                         match handle_connection(&mut stream) {
                             Ok(hm) => {
@@ -53,20 +52,20 @@ impl HttpServer {
 
 fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails,  Box<dyn error::Error + 'static>> {
     let mut buf_reader = BufReader::new(&mut stream);
-    let mut http_request:HashMap<String, String> = HashMap::new();
+    const BUF_SIZE:usize = 512;
 
     let mut buf_string = String::new();
     let mut i:usize = 0;
 
-    let mut data:[u8; 512] = [0; 512];
-    let mut read:usize = buf_reader.read(&mut data).unwrap();
+    let mut data:[u8; BUF_SIZE] = [0; BUF_SIZE];
+    _ = buf_reader.read(&mut data).unwrap();
 
     let mut status = 0;
 
     let mut http_connection_details = HttpConnectionDetails::new();
     let mut end = false;
 
-    while i < 512 && data[i] != 0 && !end{
+    while i < BUF_SIZE && data[i] != 0 && !end{
         match data[i] {
             b' ' => {
                 match status {
@@ -88,18 +87,17 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
 
         i += 1;
 
-        if i == 512 {
-            read = buf_reader.read(&mut data).unwrap();
+        if i == BUF_SIZE {
+            _ = buf_reader.read(&mut data).unwrap();
             i = 0;
         }
     }
 
     let mut key = String::new();
-    let mut value = String::new();
 
     status = 0;
 
-    while i < 512 && data[i] != 0 {
+    while i < BUF_SIZE && data[i] != 0 {
         match status {
             0 => match data[i] {
                 b':' => {
@@ -130,48 +128,30 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
 
         i += 1;
 
-        if i == 512 {
-            read = buf_reader.read(&mut data).unwrap();
+        if i == BUF_SIZE {
+            _ = buf_reader.read(&mut data).unwrap();
         }
     }
 
-    while i < 512 && data[i] != 0 && (data[i] == b'\r' || data[i] == b'\n') {
+    while i < BUF_SIZE && data[i] != 0 && (data[i] == b'\r' || data[i] == b'\n') {
         i += 1;
 
-        if i == 512 {
-            read = buf_reader.read(&mut data).unwrap();
+        if i == BUF_SIZE {
+            _ = buf_reader.read(&mut data).unwrap();
         }
     }
 
-    while i < 512 && data[i] != 0 {
+    while i < BUF_SIZE && data[i] != 0 {
         buf_string.push(data[i] as char);
 
         i += 1;
 
-        if i == 512 {
-            read = buf_reader.read(&mut data).unwrap();
+        if i == BUF_SIZE {
+            _ = buf_reader.read(&mut data).unwrap();
         }
     }
 
     http_connection_details.set_data(buf_string);
     
     Ok(http_connection_details)
-}
-
-fn split_string_into_pairs(s: &String) -> (String, String) {
-    let n: usize = s.len();
-
-    if n == 0 { return (String::new(), String::new()); }
-
-    let sep_pos = match s.find(':') {
-        Some(v) => v,
-        None => return ("HEAD_REQUEST:".to_string(), s.clone()), 
-    };
-
-    let char_array = s.chars();
-    
-    (
-        char_array.clone().take(sep_pos).collect(), 
-        char_array.clone().skip(sep_pos+1).take(n-sep_pos).collect()
-    )
 }

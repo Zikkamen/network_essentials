@@ -1,5 +1,4 @@
 use std::{
-    error,
     thread,
     collections::{HashMap},
     net::{TcpStream},

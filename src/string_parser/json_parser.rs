@@ -1,6 +1,3 @@
-use std::error;
-use std::collections::HashMap;
-
 use crate::string_parser::model_classes::ParsedString;
 
 pub fn parse(s: &String) -> ParsedString {
@@ -61,12 +58,8 @@ fn parse_list(pos: usize, raw_data: &Vec<char>) -> (usize, ParsedString) {
                     ',' => i += 1,
                     _ => panic!("Error finding closing statement. Position: {}", i),
                 }
-
-                continue;
             },
         };
-
-        i += 1;
     }
 
     panic!("Couldn't find corresponding ]");
