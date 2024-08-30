@@ -60,6 +60,7 @@ impl HttpConnectionDetails {
     }
 }
 
+#[derive(Clone)]
 pub struct ApiRegister {
     default_func: FnType,
     path_map: HashMap<(String, String), FnType>,

@@ -3,7 +3,6 @@ use std::{
     net::{TcpListener, TcpStream},
     thread,
     error,
-    sync::{Arc, RwLock},
     time::Duration
 };
 
@@ -12,14 +11,14 @@ use crate::web_api::api_register::HttpConnectionDetails;
 
 pub struct HttpServer {
     address: String,
-    api_register: Arc<RwLock<ApiRegister>>,
+    api_register: ApiRegister,
 }
 
 impl HttpServer {
     pub fn new(address: &str, main_api_register: ApiRegister) -> Self {
         HttpServer{ 
             address: address.to_string(),
-            api_register: Arc::new(RwLock::new(main_api_register)),
+            api_register: main_api_register,
         }
     }
 
@@ -28,7 +27,7 @@ impl HttpServer {
         let max_read_time = Duration::from_millis(200);
 
         for stream in listener.incoming() {
-            let api_register_clone = Arc::clone(&self.api_register);
+            let api_register_clone = self.api_register.clone();
 
             thread::spawn(move || {
                 match stream {
@@ -38,7 +37,7 @@ impl HttpServer {
                         match handle_connection(&mut stream) {
                             Ok(hm) => {
                                 println!("Handling Connection");
-                                api_register_clone.read().unwrap().handle_http_request(hm, stream);
+                                api_register_clone.handle_http_request(hm, stream);
                             },
                             Err(e) => println!("Error handling incoming request {}", e),
                         }
