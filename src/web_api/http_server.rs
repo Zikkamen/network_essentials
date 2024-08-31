@@ -28,7 +28,7 @@ impl HttpServer {
 
         let mut threads = vec![];
 
-        for _i in 0..400 {
+        for _i in 0..128 {
             let listener_clone = listener.try_clone().unwrap();
             let api_register_clone = self.api_register.clone();
 
