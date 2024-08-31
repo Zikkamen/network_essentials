@@ -75,31 +75,37 @@ impl ApiRegister {
     pub fn handle_http_request(&self, mut http_request: HttpConnectionDetails, stream: TcpStream) {
         let method = http_request.get_method();
         let path = http_request.get_path();
-        
-        let extract_prefix:Vec<&str> = path.split('/').collect(); // TODO: Optimize Prefix Mapping with a Trie
 
-        if extract_prefix.len() > 1 {
-            match self.prefix_map.get(extract_prefix[1]) {
-                Some(v) => {
-                    let mut remaining_path = String::new();
+        let mut prefix = "/".to_string();
+        let mut suffix = "/".to_string();
 
-                    for i in 2..extract_prefix.len() {
-                        remaining_path.push_str("/");
-                        remaining_path.push_str(extract_prefix[i]);
-                    }
+        let mut found_prefix = false;
+        let mut first = true;
 
-                    if remaining_path.len() == 0 { 
-                        remaining_path = "/".to_string(); 
-                    }
-
-                    http_request.set_path(remaining_path);
-
-                    v.handle_http_request(http_request, stream);
-
-                    return;
-                },
-                None => (),
+        for c in path.chars() {
+            if first {
+                first = false;
+                continue;
             }
+
+            match found_prefix {
+                true => suffix.push(c),
+                false => match c {
+                    '/' => {
+                        found_prefix = true;
+                    },
+                    _ => prefix.push(c),
+                }
+            }
+        }
+
+        match self.prefix_map.get(&prefix) {
+            Some(v) => {
+                http_request.set_path(suffix);
+                v.handle_http_request(http_request, stream);
+                return;
+            },
+            None => (),
         }
 
         let func: FnType = match self.path_map.get(&(method, path)) {
@@ -107,7 +113,7 @@ impl ApiRegister {
             None => self.default_func,
         };
 
-        thread::spawn(move || { func(http_request, stream) });
+        func(http_request, stream);
     }
 
     pub fn register_function(&mut self, method: &str, path: &str, function: FnType) {

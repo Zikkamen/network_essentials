@@ -24,27 +24,33 @@ impl HttpServer {
 
     pub fn start_listening(&self) {
         let listener = TcpListener::bind(&self.address).unwrap();
-        let max_read_time = Duration::from_millis(200);
+        //let max_read_time = Duration::from_millis(200);
 
-        for stream in listener.incoming() {
+        let mut threads = vec![];
+
+        for _i in 0..400 {
+            let listener_clone = listener.try_clone().unwrap();
             let api_register_clone = self.api_register.clone();
 
-            thread::spawn(move || {
-                match stream {
-                    Ok(mut stream) => {
-                        let _ = stream.set_read_timeout(Some(max_read_time));
-
-                        match handle_connection(&mut stream) {
+            let j_handle = thread::spawn(move || {
+                for stream in listener_clone.incoming() {
+                    match stream {
+                        Ok(mut stream) =>  match handle_connection(&mut stream) {
                             Ok(hm) => {
-                                println!("Handling Connection");
                                 api_register_clone.handle_http_request(hm, stream);
                             },
                             Err(e) => println!("Error handling incoming request {}", e),
-                        }
-                    },
-                    Err(e) => println!("Error handling incoming request {}", e),
-                };
+                        },
+                        Err(e) => println!("Error {e}"),
+                    }
+                }
             });
+
+            threads.push(j_handle);
+        }
+
+        for i in threads {
+            i.join();
         }
     }
 }
