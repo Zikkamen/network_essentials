@@ -12,13 +12,18 @@ use crate::web_api::api_register::HttpConnectionDetails;
 pub struct HttpServer {
     address: String,
     connection_timeout: u64,
+    worker_size: usize,
     api_register: ApiRegister,
 }
 
 impl HttpServer {
-    pub fn new(address: &str, main_api_register: ApiRegister, connection_timeout: u64) -> Self {
+    pub fn new(address: &str,
+            main_api_register: ApiRegister,
+            worker_size: usize,
+            connection_timeout: u64) -> Self {
         HttpServer{ 
             address: address.to_string(),
+            worker_size: worker_size,
             api_register: main_api_register,
             connection_timeout: connection_timeout,
         }
@@ -30,7 +35,7 @@ impl HttpServer {
 
         let mut threads = vec![];
 
-        for _i in 0..128 {
+        for _i in 0..self.worker_size {
             let listener_clone = listener.try_clone().unwrap();
             let api_register_clone = self.api_register.clone();
 
