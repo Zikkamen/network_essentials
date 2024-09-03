@@ -69,7 +69,10 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
     let mut i:usize = 0;
 
     let mut data:[u8; BUF_SIZE] = [0; BUF_SIZE];
-    _ = buf_reader.read(&mut data).unwrap();
+    _ = match buf_reader.read(&mut data) {
+        Ok(v) => v,
+        Err(e) => return Err(Box::new(e)), 
+    };
 
     let mut status = 0;
 
@@ -99,7 +102,11 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         i += 1;
 
         if i == BUF_SIZE {
-            _ = buf_reader.read(&mut data).unwrap();
+            _ = match buf_reader.read(&mut data) {
+                Ok(v) => v,
+                Err(e) => return Err(Box::new(e)), 
+            };
+
             i = 0;
         }
     }
@@ -140,7 +147,10 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         i += 1;
 
         if i == BUF_SIZE {
-            _ = buf_reader.read(&mut data).unwrap();
+            _ = match buf_reader.read(&mut data) {
+                Ok(v) => v,
+                Err(e) => return Err(Box::new(e)), 
+            };
         }
     }
 
@@ -148,7 +158,10 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         i += 1;
 
         if i == BUF_SIZE {
-            _ = buf_reader.read(&mut data).unwrap();
+            _ = match buf_reader.read(&mut data) {
+                Ok(v) => v,
+                Err(e) => return Err(Box::new(e)), 
+            };
         }
     }
 
@@ -158,7 +171,10 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         i += 1;
 
         if i == BUF_SIZE {
-            _ = buf_reader.read(&mut data).unwrap();
+            _ = match buf_reader.read(&mut data) {
+                Ok(v) => v,
+                Err(e) => return Err(Box::new(e)), 
+            };
         }
     }
 
