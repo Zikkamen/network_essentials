@@ -11,20 +11,22 @@ use crate::web_api::api_register::HttpConnectionDetails;
 
 pub struct HttpServer {
     address: String,
+    connection_timeout: u64,
     api_register: ApiRegister,
 }
 
 impl HttpServer {
-    pub fn new(address: &str, main_api_register: ApiRegister) -> Self {
+    pub fn new(address: &str, main_api_register: ApiRegister, connection_timeout: u64) -> Self {
         HttpServer{ 
             address: address.to_string(),
             api_register: main_api_register,
+            connection_timeout: connection_timeout,
         }
     }
 
     pub fn start_listening(&self) {
         let listener = TcpListener::bind(&self.address).unwrap();
-        let max_read_time = Duration::from_millis(200);
+        let max_read_time = Duration::from_millis(self.connection_timeout);
 
         let mut threads = vec![];
 
