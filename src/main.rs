@@ -16,36 +16,30 @@ fn main() {
 
     default_api.register_prefix("/files", files_api);
 
-    let http_server = HttpServer::new("127.0.0.1:7878", default_api, 128, 1000);
+    let http_server = HttpServer::new("127.0.0.1:7878", default_api, 64, 1000);
     http_server.start_listening();
 }
 
-fn index(http_request: HttpConnectionDetails, mut stream: TcpStream) {
+fn index(http_request: HttpConnectionDetails) -> String {
     let status_line = "HTTP/1.1 200";
     let contents = format!("{:?}", http_request);
     let length = contents.len();
 
-    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-
-    stream.write_all(response.as_bytes()).unwrap();
+    return format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
 }
 
-fn index_files(http_request: HttpConnectionDetails, mut stream: TcpStream) {
+fn index_files(http_request: HttpConnectionDetails) -> String {
     let status_line = "HTTP/1.1 200";
     let contents = format!("{:?}", http_request);
     let length = contents.len();
 
-    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-
-    stream.write_all(response.as_bytes()).unwrap();
+    return format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
 }
 
-fn error_404(http_request: HttpConnectionDetails, mut stream: TcpStream) {
+fn error_404(http_request: HttpConnectionDetails) -> String {
     let status_line = "HTTP/1.1 400";
     let contents = format!("{:?}", http_request);
     let length = contents.len();
 
-    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-
-    stream.write_all(response.as_bytes()).unwrap();
+    return format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
 }

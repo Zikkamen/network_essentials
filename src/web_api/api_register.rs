@@ -1,9 +1,6 @@
-use std::{
-    collections::{HashMap},
-    net::{TcpStream},
-};
+use std::collections::HashMap;
 
-type FnType = fn(HttpConnectionDetails, TcpStream);
+type FnType = fn(HttpConnectionDetails) -> String;
 
 #[derive(Debug)]
 pub struct HttpConnectionDetails {
@@ -71,7 +68,7 @@ impl ApiRegister {
         ApiRegister{ default_func: default_func, path_map:HashMap::new(), prefix_map:HashMap::new() }
     }
 
-    pub fn handle_http_request(&self, mut http_request: HttpConnectionDetails, stream: TcpStream) {
+    pub fn handle_http_request(&self, mut http_request: HttpConnectionDetails) -> String {
         let method = http_request.get_method();
         let path = http_request.get_path();
 
@@ -101,8 +98,7 @@ impl ApiRegister {
         match self.prefix_map.get(&prefix) {
             Some(v) => {
                 http_request.set_path(suffix);
-                v.handle_http_request(http_request, stream);
-                return;
+                return v.handle_http_request(http_request);
             },
             None => (),
         }
@@ -112,7 +108,7 @@ impl ApiRegister {
             None => self.default_func,
         };
 
-        func(http_request, stream);
+        return func(http_request);
     }
 
     pub fn register_function(&mut self, method: &str, path: &str, function: FnType) {
