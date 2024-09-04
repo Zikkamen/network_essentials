@@ -1,9 +1,10 @@
 use std::{
     io::{prelude::*, BufReader},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener, TcpStream, Shutdown},
     thread,
     error,
-    time::Duration
+    time::Duration,
+    sync::{Arc, RwLock}
 };
 
 use crate::web_api::api_register::ApiRegister;
@@ -50,6 +51,7 @@ impl HttpServer {
                                     let response  = api_register_clone.handle_http_request(hm);
 
                                     stream.write_all(response.as_bytes()).unwrap();
+                                    stream.flush().unwrap();
                                 },
                                 Err(e) => println!("Error handling incoming request {}", e),
                             }
