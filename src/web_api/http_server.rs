@@ -1,10 +1,9 @@
 use std::{
     io::{prelude::*, BufReader},
-    net::{TcpListener, TcpStream, Shutdown},
+    net::{TcpListener, TcpStream},
     thread,
     error,
     time::Duration,
-    sync::{Arc, RwLock}
 };
 
 use crate::web_api::api_register::ApiRegister;
