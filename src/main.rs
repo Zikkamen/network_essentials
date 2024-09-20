@@ -13,7 +13,7 @@ fn main() {
 
     default_api.register_prefix("/files", files_api);
 
-    let http_server = HttpServer::new("127.0.0.1:7878", default_api, 64, 1000);
+    let http_server = HttpServer::new("127.0.0.1:7878", default_api, 16, 1000);
     http_server.start_listening();
 }
 

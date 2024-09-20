@@ -2,12 +2,24 @@ use std::{
     io::{prelude::*, BufReader},
     net::{TcpListener, TcpStream},
     thread,
-    error,
     time::Duration,
+    error::Error,
+    fmt,
 };
 
 use crate::web_api::api_register::ApiRegister;
 use crate::web_api::api_register::HttpConnectionDetails;
+
+#[derive(Debug)]
+struct HttpParsingError(String);
+
+impl fmt::Display for HttpParsingError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "There is an error: {}", self.0)
+    }
+}
+
+impl Error for HttpParsingError {}
 
 pub struct HttpServer {
     address: String,
@@ -69,7 +81,7 @@ impl HttpServer {
     }
 }
 
-fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails,  Box<dyn error::Error + 'static>> {
+fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails,  HttpParsingError> {
     let mut buf_reader = BufReader::new(&mut stream);
     const BUF_SIZE:usize = 512;
 
@@ -79,7 +91,7 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
     let mut data:[u8; BUF_SIZE] = [0; BUF_SIZE];
     _ = match buf_reader.read(&mut data) {
         Ok(v) => v,
-        Err(e) => return Err(Box::new(e)), 
+        Err(e) => return Err(HttpParsingError(e.to_string())), 
     };
 
     let mut status = 0;
@@ -92,7 +104,10 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
             b' ' => {
                 match status {
                     0 => http_connection_details.set_method(buf_string),
-                    1 => http_connection_details.set_path(buf_string),
+                    1 => match validate_path(&buf_string) {
+                        true => http_connection_details.set_path(buf_string),
+                        false => return Err(HttpParsingError("Forbidden Character in path".to_string())),
+                    },
                     _ => (),
                 };
 
@@ -112,7 +127,7 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         if i == BUF_SIZE {
             _ = match buf_reader.read(&mut data) {
                 Ok(v) => v,
-                Err(e) => return Err(Box::new(e)), 
+                Err(e) => return Err(HttpParsingError(e.to_string())), 
             };
 
             i = 0;
@@ -157,7 +172,7 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         if i == BUF_SIZE {
             _ = match buf_reader.read(&mut data) {
                 Ok(v) => v,
-                Err(e) => return Err(Box::new(e)), 
+                Err(e) => return Err(HttpParsingError(e.to_string())), 
             };
         }
     }
@@ -168,7 +183,7 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         if i == BUF_SIZE {
             _ = match buf_reader.read(&mut data) {
                 Ok(v) => v,
-                Err(e) => return Err(Box::new(e)), 
+                Err(e) => return Err(HttpParsingError(e.to_string())), 
             };
         }
     }
@@ -181,7 +196,7 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         if i == BUF_SIZE {
             _ = match buf_reader.read(&mut data) {
                 Ok(v) => v,
-                Err(e) => return Err(Box::new(e)), 
+                Err(e) => return Err(HttpParsingError(e.to_string())), 
             };
         }
     }
@@ -189,4 +204,23 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
     http_connection_details.set_data(buf_string);
     
     Ok(http_connection_details)
+}
+
+fn validate_path(path: &String) -> bool {
+    let chars:&[u8] = path.as_bytes();
+    let n = chars.len();
+
+    for i in 1..n {
+        if chars[i] == b'.' && chars[i-1] == b'.' {
+            return false;
+        }
+    }
+
+    for i in 0..n {
+        if chars[i] == b'<' || chars[i] == b'>' {
+            return false;
+        }
+    }
+
+    true
 }
