@@ -59,10 +59,12 @@ impl HttpServer {
 
                             match handle_connection(&mut stream) {
                                 Ok(hm) => {
-                                    let response  = api_register_clone.handle_http_request(hm);
+                                    let response = api_register_clone.handle_http_request(hm);
 
-                                    stream.write_all(response.as_bytes()).unwrap();
-                                    stream.flush().unwrap();
+                                    match stream.write_all(response.as_bytes()) {
+                                        Ok(v) => v,
+                                        Err(_) => continue,
+                                    };
                                 },
                                 Err(e) => println!("Error handling incoming request {}", e),
                             }
