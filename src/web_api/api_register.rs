@@ -23,7 +23,7 @@ impl HttpConnectionDetails {
     pub fn set_method(&mut self, method: String) {
         match &method[..] {
             "GET" | "PUT" | "POST" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD" => self.method = method,
-            _ => panic!("Can't recgonize Http Method {method}"),
+            _ => (),
         };
     }
 
