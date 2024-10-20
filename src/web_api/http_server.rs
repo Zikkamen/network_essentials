@@ -84,10 +84,11 @@ impl HttpServer {
 }
 
 fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails,  HttpParsingError> {
-    let mut buf_reader = BufReader::new(&mut stream);
-
-    let buf_arr = buf_reader.fill_buf().unwrap();
-    let n = buf_arr.len();
+    let mut buf_arr = [0; 8192];
+    let mut n = match stream.read(&mut buf_arr) {
+        Ok(v) => v,
+        Err(_) => 0,
+    };
 
     let mut buf_str = String::new();
     let mut key = String::new();
@@ -122,6 +123,15 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         };
 
         i += 1;
+
+        if i == n {
+            n = match stream.read(&mut buf_arr) {
+                Ok(v) => v,
+                Err(_) => 0,
+            };
+
+            i = 0;
+        }
     }
 
     status = 0;
@@ -156,20 +166,50 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         }
 
         i += 1;
+
+        if i == n {
+            n = match stream.read(&mut buf_arr) {
+                Ok(v) => v,
+                Err(_) => 0,
+            };
+
+            i = 0;
+        }
     }
 
     while i < n && (buf_arr[i] == b'\r' || buf_arr[i] == b'\n') {
         i += 1;
+
+        if i == n {
+            n = match stream.read(&mut buf_arr) {
+                Ok(v) => v,
+                Err(_) => 0,
+            };
+
+            i = 0;
+        }
     }
 
     while i < n {
         buf_str.push(buf_arr[i] as char);
 
         i += 1;
+
+        if i == n {
+            n = match stream.read(&mut buf_arr) {
+                Ok(v) => v,
+                Err(e) => {
+                    println!("{e}");
+
+                    0
+                },
+            };
+
+            i = 0;
+        }
     }
 
     http_connection_details.set_data(buf_str);
-    buf_reader.consume(n);
     
     Ok(http_connection_details)
 }
