@@ -22,6 +22,8 @@ fn index(http_request: HttpConnectionDetails) -> String {
     let contents = format!("{:?}", http_request);
     let length = contents.len();
 
+    //println!("{}", contents);
+
     return format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
 }
 

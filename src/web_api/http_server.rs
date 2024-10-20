@@ -85,29 +85,24 @@ impl HttpServer {
 
 fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails,  HttpParsingError> {
     let mut buf_reader = BufReader::new(&mut stream);
-    const BUF_SIZE:usize = 512;
 
-    let mut buf_string = String::new();
+    let buf_arr = buf_reader.fill_buf().unwrap();
+    let n = buf_arr.len();
+
+    let mut buf_str = String::new();
+    let mut key = String::new();
     let mut i:usize = 0;
 
-    let mut data:[u8; BUF_SIZE] = [0; BUF_SIZE];
-    _ = match buf_reader.read(&mut data) {
-        Ok(v) => v,
-        Err(e) => return Err(HttpParsingError(e.to_string())), 
-    };
-
+    let mut http_connection_details = HttpConnectionDetails::new();
     let mut status = 0;
 
-    let mut http_connection_details = HttpConnectionDetails::new();
-    let mut end = false;
-
-    while i < BUF_SIZE && data[i] != 0 && !end{
-        match data[i] {
+    while i < n {
+        match buf_arr[i] {
             b' ' => {
                 match status {
-                    0 => http_connection_details.set_method(buf_string),
-                    1 => match validate_path(&buf_string) {
-                        true => http_connection_details.set_path(buf_string),
+                    0 => http_connection_details.set_method(buf_str),
+                    1 => match validate_path(&buf_str) {
+                        true => http_connection_details.set_path(buf_str),
                         false => return Err(HttpParsingError("Forbidden Character in path".to_string())),
                     },
                     _ => (),
@@ -115,95 +110,66 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
 
                 status += 1;
 
-                buf_string = String::new();
+                buf_str = String::new();
             },
             b'\r' => {
-                buf_string = String::new();
-                end = true;
+                buf_str = String::new();
+                i += 1;
+
+                break;
             },
-            _ => buf_string.push(data[i] as char),
+            _ => buf_str.push(buf_arr[i] as char),
         };
 
         i += 1;
-
-        if i == BUF_SIZE {
-            _ = match buf_reader.read(&mut data) {
-                Ok(v) => v,
-                Err(e) => return Err(HttpParsingError(e.to_string())), 
-            };
-
-            i = 0;
-        }
     }
-
-    let mut key = String::new();
 
     status = 0;
 
-    while i < BUF_SIZE && data[i] != 0 {
+    while i < n {
         match status {
-            0 => match data[i] {
+            0 => match buf_arr[i] {
                 b':' => {
-                    key = buf_string;
+                    key = buf_str;
 
                     status = 1;
-                    buf_string = String::new();
+                    buf_str = String::new();
                 },
                 b'\r' => break,
                 b'\n' => (),
-                _ => buf_string.push(data[i] as char),
+                _ => buf_str.push(buf_arr[i] as char),
             },
-            _ => match data[i] {
+            _ => match buf_arr[i] {
                 b'\r' => {
-                    http_connection_details.set_header(key, buf_string);
+                    http_connection_details.set_header(key, buf_str);
 
                     status  = 0;
-                    buf_string = String::new();
+                    buf_str = String::new();
                     key = String::new();
                 },
                 _ => {
-                    if buf_string.len() > 0 || data[i] != b' ' {
-                        buf_string.push(data[i] as char);
+                    if buf_str.len() > 0 || buf_arr[i] != b' ' {
+                        buf_str.push(buf_arr[i] as char);
                     }
                 },
             }
         }
 
         i += 1;
-
-        if i == BUF_SIZE {
-            _ = match buf_reader.read(&mut data) {
-                Ok(v) => v,
-                Err(e) => return Err(HttpParsingError(e.to_string())), 
-            };
-        }
     }
 
-    while i < BUF_SIZE && data[i] != 0 && (data[i] == b'\r' || data[i] == b'\n') {
+    while i < n && (buf_arr[i] == b'\r' || buf_arr[i] == b'\n') {
         i += 1;
-
-        if i == BUF_SIZE {
-            _ = match buf_reader.read(&mut data) {
-                Ok(v) => v,
-                Err(e) => return Err(HttpParsingError(e.to_string())), 
-            };
-        }
     }
 
-    while i < BUF_SIZE && data[i] != 0 {
-        buf_string.push(data[i] as char);
+    while i < n {
+        buf_str.push(buf_arr[i] as char);
 
         i += 1;
-
-        if i == BUF_SIZE {
-            _ = match buf_reader.read(&mut data) {
-                Ok(v) => v,
-                Err(e) => return Err(HttpParsingError(e.to_string())), 
-            };
-        }
     }
 
-    http_connection_details.set_data(buf_string);
+    http_connection_details.set_data(buf_str);
+    buf_reader.consume(n);
     
     Ok(http_connection_details)
 }
