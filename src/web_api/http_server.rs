@@ -1,5 +1,5 @@
 use std::{
-    io::{prelude::*, BufReader},
+    io::prelude::*,
     net::{TcpListener, TcpStream},
     thread,
     time::Duration,
@@ -83,7 +83,7 @@ impl HttpServer {
     }
 }
 
-fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails,  HttpParsingError> {
+fn handle_connection(stream: &mut TcpStream) -> Result<HttpConnectionDetails,  HttpParsingError> {
     let mut buf_arr = [0; 8192];
     let mut n = match stream.read(&mut buf_arr) {
         Ok(v) => v,
@@ -177,19 +177,6 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         }
     }
 
-    while i < n && (buf_arr[i] == b'\r' || buf_arr[i] == b'\n') {
-        i += 1;
-
-        if i == n {
-            n = match stream.read(&mut buf_arr) {
-                Ok(v) => v,
-                Err(_) => 0,
-            };
-
-            i = 0;
-        }
-    }
-
     let content_length_str = match http_connection_details.get_header("Content-Length") {
         Some(v) => v,
         None => return Ok(http_connection_details),
@@ -200,6 +187,10 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         Err(_) => return Ok(http_connection_details),
     };
 
+    if content_length == 0 {
+        return Ok(http_connection_details);
+    }
+
     while i < n && content_length > 0 {
         buf_str.push(buf_arr[i] as char);
 
@@ -209,7 +200,7 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         if i == n && content_length > 0 {
             n = match stream.read(&mut buf_arr) {
                 Ok(v) => v,
-                Err(e) => 0,
+                Err(_) => 0,
             };
 
             i = 0;
