@@ -190,19 +190,26 @@ fn handle_connection(mut stream: &mut TcpStream) -> Result<HttpConnectionDetails
         }
     }
 
-    while i < n {
+    let content_length_str = match http_connection_details.get_header("Content-Length") {
+        Some(v) => v,
+        None => return Ok(http_connection_details),
+    };
+
+    let mut content_length = match content_length_str.parse::<usize>() {
+        Ok(v) => v,
+        Err(_) => return Ok(http_connection_details),
+    };
+
+    while i < n && content_length > 0 {
         buf_str.push(buf_arr[i] as char);
 
         i += 1;
+        content_length -= 1;
 
-        if i == n {
+        if i == n && content_length > 0 {
             n = match stream.read(&mut buf_arr) {
                 Ok(v) => v,
-                Err(e) => {
-                    println!("{e}");
-
-                    0
-                },
+                Err(e) => 0,
             };
 
             i = 0;
